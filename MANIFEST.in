@@ -1,0 +1,5 @@
+# include requirements.txt
+graft eav/migrations
+graft eav/tests
+graft eav
+global-exclude *.pyc
