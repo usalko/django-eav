@@ -1,5 +1,6 @@
 # include requirements.txt
-graft eav/migrations
-graft eav/tests
-graft eav
-global-exclude *.pyc
+# graft eav/migrations
+# graft eav/tests
+exclude *.pyc 
+recursive-exclude **/__pycache__/**
+include *.py
