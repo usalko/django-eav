@@ -39,13 +39,13 @@ from builtins import object
 from django.utils import timezone
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import fields as generic
 from django.contrib.sites.models import Site
 from django.contrib.sites.managers import CurrentSiteManager
 from django.conf import settings
-from django.utils.encoding import python_2_unicode_compatible
+#from django.utils.encoding import python_2_unicode_compatible
 
 from .validators import *
 from .fields import EavSlugField, EavDatatypeField
@@ -83,7 +83,7 @@ class EnumValue(models.Model):
     value = models.CharField(_(u"value"), db_index=True,
                              unique=True, max_length=50)
 
-    @python_2_unicode_compatible
+    #@python_2_unicode_compatible
     def __str__(self):
         return self.value
        
@@ -101,7 +101,7 @@ class EnumGroup(models.Model):
 
     enums = models.ManyToManyField(EnumValue, verbose_name=_(u"enum group"))
 
-    @python_2_unicode_compatible
+    #@python_2_unicode_compatible
     def __str__(self):
         return self.name
 
@@ -183,10 +183,12 @@ class Attribute(models.Model):
 
     content_type = models.ForeignKey(ContentType,
                             blank=True, null=True,
-                            verbose_name=_(u"content type"))
+                            verbose_name=_(u"content type"),
+                            on_delete=models.CASCADE)
 
     site = models.ForeignKey(Site, verbose_name=_(u"site"),
-                             default=settings.SITE_ID)
+                             default=settings.SITE_ID,
+                             on_delete=models.CASCADE)
 
     slug = EavSlugField(_(u"slug"), max_length=50, db_index=True,
                           help_text=_(u"Short unique attribute label"))
@@ -196,7 +198,7 @@ class Attribute(models.Model):
                                      help_text=_(u"Short description"))
 
     enum_group = models.ForeignKey(EnumGroup, verbose_name=_(u"choice group"),
-                                   blank=True, null=True)
+                                   blank=True, null=True, on_delete=models.CASCADE)
 
     type = models.CharField(_(u"type"), max_length=20, blank=True, null=True)
 
@@ -322,7 +324,7 @@ class Attribute(models.Model):
             value_obj.value = value
             value_obj.save()
 
-    @python_2_unicode_compatible
+    #@python_2_unicode_compatible
     def __str__(self):
         return u"%s.%s (%s)" % (self.content_type, self.name, self.get_datatype_display())
 
@@ -333,7 +335,7 @@ class Value(models.Model):
     :class:`Attribute` for some entity.
 
     As with most EAV implementations, most of the columns of this model will
-    be blank, as onle one *value_* field will be used.
+    be blank, as only one *value_* field will be used.
 
     Example:
 
@@ -347,7 +349,7 @@ class Value(models.Model):
     <Value: crazy_dev_user - Favorite Drink: "red bull">
     '''
 
-    entity_ct = models.ForeignKey(ContentType, related_name='value_entities')
+    entity_ct = models.ForeignKey(ContentType, related_name='value_entities', on_delete=models.CASCADE)
     entity_id = models.IntegerField()
     entity = generic.GenericForeignKey(ct_field='entity_ct',
                                        fk_field='entity_id')
@@ -356,13 +358,13 @@ class Value(models.Model):
     value_float = models.FloatField(blank=True, null=True)
     value_int = models.IntegerField(blank=True, null=True)
     value_date = models.DateTimeField(blank=True, null=True)
-    value_bool = models.NullBooleanField(blank=True, null=True)
+    value_bool = models.BooleanField(blank=True, null=True)
     value_enum = models.ForeignKey(EnumValue, blank=True, null=True,
-                                   related_name='eav_values')
+                                   related_name='eav_values', on_delete=models.CASCADE)
 
     generic_value_id = models.IntegerField(blank=True, null=True)
     generic_value_ct = models.ForeignKey(ContentType, blank=True, null=True,
-                                         related_name='value_values')
+                                         related_name='value_values', on_delete=models.CASCADE)
     value_object = generic.GenericForeignKey(ct_field='generic_value_ct',
                                              fk_field='generic_value_id')
 
@@ -370,7 +372,7 @@ class Value(models.Model):
     modified = models.DateTimeField(_(u"modified"), auto_now=True)
 
     attribute = models.ForeignKey(Attribute, db_index=True,
-                                  verbose_name=_(u"attribute"))
+                                  verbose_name=_(u"attribute"), on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
         '''
@@ -406,7 +408,7 @@ class Value(models.Model):
 
     value = property(_get_value, _set_value)
 
-    @python_2_unicode_compatible
+    #@python_2_unicode_compatible
     def __str__(self):
         return u"%s - %s: \"%s\"" % (self.entity, self.attribute.name,
                                      self.value)
@@ -428,7 +430,7 @@ class Entity(object):
 
     def __getattr__(self, name):
         '''
-        Tha magic getattr helper.  This is called whenevery you do
+        Tha magic getattr helper.  This is called whenever you do
         this_instance.<whatever>
 
         Checks if *name* is a valid slug for attributes available to this
@@ -460,14 +462,14 @@ class Entity(object):
 
     def _hasattr(self, attribute_slug):
         '''
-        Since we override __getattr__ with a backdown to the database, this exists as a way of
+        Since we override __getattr__ with a back down to the database, this exists as a way of
         checking whether a user has set a real attribute on ourselves, without going to the db if not
         '''
         return attribute_slug in self.__dict__
 
     def _getattr(self, attribute_slug):
         '''
-        Since we override __getattr__ with a backdown to the database, this exists as a way of
+        Since we override __getattr__ with a back down to the database, this exists as a way of
         getting the value a user set for one of our attributes, without going to the db to check
         '''
         return self.__dict__[attribute_slug]
