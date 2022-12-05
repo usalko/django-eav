@@ -32,7 +32,11 @@ setup(
 
     url='http://github.com/mvpdev/django-eav',
 
-    packages=['eav', 'eav.tests', 'eav.migrations'],
+    packages=['eav', 'tests', 'migrations'],
+    package_dir={
+        'tests': 'eav',
+        'migrations': 'eav',
+    },
 
     classifiers  = [
         'Development Status :: 4 - Beta',
